@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>今天吃啥决策器</title>
+<style>
+    :root { --primary: #ff8ba7; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { 
+        font-family: -apple-system, sans-serif; 
+        background: #fff6f1; 
+        transition: background 0.5s ease; 
+        display: flex; justify-content: center; align-items: center; min-height: 100vh;
+    }
+    .container { 
+        width: 100%; max-width: 414px; height: 100vh; background: #fff; 
+        position: relative; display: flex; flex-direction: column; overflow: hidden;
+    }
+    @media (min-height: 600px) { .container { height: 650px; border-radius: 30px; box-shadow: 0 15px 50px rgba(0,0,0,0.1); } }
+
+    /* 封面 */
+    #page-start { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 40px; }
+    .emoji { font-size: 80px; margin-bottom: 20px; animation: wave 2s infinite; }
+    @keyframes wave { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(15deg); } }
+    h1 { font-size: 32px; color: #ff5c87; margin-bottom: 10px; }
+    .info { color: #999; margin-bottom: 40px; font-size: 15px; }
+    /* 作者文字 */
+    .author {
+        position: absolute;
+        bottom: 30px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 13px;
+        color: #bbb;
+    }
+
+    /* 开始按钮 */
+    .btn-start { 
+        background: #ff5c87; 
+        color: #fff; 
+        width: 220px;
+        padding: 14px 0;
+        border: none; 
+        border-radius: 6px;
+        font-weight: bold; 
+        font-size: 15px; 
+        cursor: pointer;
+    }
+
+    /* 答题区 */
+    #page-quiz { display: none; flex-direction: column; flex: 1; padding: 20px 25px; }
+    .progress-bar { height: 6px; background: #eee; border-radius: 3px; margin: 20px 0; overflow: hidden; }
+    .progress { height: 100%; background: linear-gradient(90deg, #ff8ba7, #ffb48f); width: 0%; transition: 0.4s; }
+    .q-num { font-size: 12px; color: #ccc; font-weight: bold; }
+    .q-title { font-size: 22px; font-weight: bold; margin: 15px 0 30px; line-height: 1.4; min-height: 60px; }
+    .option { 
+        background: #f7f7f7; padding: 18px; border-radius: 15px; margin-bottom: 12px; 
+        cursor: pointer; transition: 0.2s; border: 2px solid transparent;
+    }
+    .option.selected { background: #fff0f4; border-color: #ff8ba7; transform: scale(1.02); }
+    
+    /* 底部 */
+    .footer { 
+        margin-top: auto; 
+        display: flex; 
+        justify-content: center;
+        padding-bottom: 20px;
+    }
+    .btn-prev { 
+        width: 140px;
+        padding: 14px; 
+        border: none; 
+        border-radius: 12px; 
+        font-weight: bold; 
+        font-size: 16px; 
+        cursor: pointer;
+        background: #eee; color: #888;
+    }
+    .btn-next { display: none; }
+
+    /* 结果页 */
+    #page-result { display: none; padding: 40px 25px; text-align: center; animation: fadeIn 0.8s; }
+    .res-emoji { font-size: 70px; margin: 10px 0; }
+    /* 食物字体加大加粗 */
+    #res-food-name { 
+        font-size: 42px; 
+        font-weight: 900; 
+        margin: 15px 0; 
+        color: #ffffff;
+    }
+    .res-desc { text-align: left; background: #fdf6f7; padding: 20px; border-radius: 20px; line-height: 1.8; color: #555; font-size: 14px; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+</style>
+</head>
+
+<body>
+<div class="container">
+    <!-- 第一页：开始 -->
+    <div id="page-start">
+        <div class="emoji">🍱</div>
+        <h1>今天吃啥决策器</h1>
+        <div class="info">通过 10 道心理暗示题，精准锁定你的胃口</div>
+        <button class="btn-start" id="startBtn">点击开始</button>
+        <!-- 作者名字 -->
+        <div class="author">创建者：钉子</div>
+    </div>
+
+    <!-- 第二部分：答题 -->
+    <div id="page-quiz">
+        <div class="q-num" id="q-idx">QUESTION 01</div>
+        <div class="progress-bar"><div class="progress" id="progress"></div></div>
+        <div id="question-box">
+            <div class="q-title" id="q-text">加载中...</div>
+            <div id="options-box"></div>
+        </div>
+        <div class="footer">
+            <button class="btn-prev" id="prev-btn" onclick="prev()">上一题</button>
+            <button class="btn-next" onclick="next()">下一题</button>
+        </div>
+    </div>
+
+    <!-- 第三页：结果 -->
+    <div id="page-result">
+        <div style="font-size: 50px;">✨</div>
+        <div style="color: #ff8ba7; font-weight: bold;">分析完毕！今日建议投喂：</div>
+        <div class="res-emoji" id="res-emoji"></div>
+        <div id="res-food-name"></div>
+        <div id="res-title" style="margin-bottom: 20px; font-weight: bold; color: #888;"></div>
+        <div class="res-desc" id="res-desc"></div>
+        <button onclick="resetTest()" style="margin-top: 30px; background: none; color: #ccc; border:none; font-size:15px; cursor:pointer;">重新测试</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "如果现在窗外突然下起大雨，你第一反应是？", options: [["B","赶紧躲雨，鞋湿了心情就完了"], ["L","雨越大越浪漫，想发朋友圈"], ["O","无所谓，反正人生早就不是晴天"], ["F","第一时间确认还能不能安全回家"]] },
+        { q: "现在这个时间点，你更像哪种状态？", options: [["A","电量80%，还能再战"], ["E","电量50%，靠意志力硬撑"], ["N","电量20%，谁碰我谁倒霉"], ["C","正在省电模式里思考人生"]] },
+        { q: "收到一个“必须立刻完成”的任务，你会？", options: [["A","先做再说，干完最重要"], ["H","表面冷静，心里已经开始爆炸"], ["C","拖延两分钟再面对现实"], ["M","第一反应是：为什么又是我"]] },
+        { q: "深夜睡不着时，你的大脑通常在播放？", options: [["K","我未来一定会很厉害"], ["B","三年前说错的一句话"], ["D","一堆没有发生但足够吓人的事"], ["Q","某段BGM自动循环一小时"]] },
+        { q: "如果今天突然放假一天，你最可能？", options: [["A","制定完整计划，把一天利用到极致"], ["G","出门乱逛，随机刷新地图"], ["J","床上躺平，像被世界撤回的人类"], ["E","先开心五分钟，然后开始焦虑"]] },
+        { q: "朋友说“马上到”，你理解为？", options: [["I","真快到了"], ["R","至少还有15分钟"], ["C","他甚至可能还没出门"], ["N","人类之间最不可信的话术之一"]] },
+        { q: "现在让你立刻出门，你最怕什么？", options: [["B","天气太热/太冷"], ["G","人太多要社交"], ["F","手机只剩5%电"], ["L","没洗头且状态很糟"]] },
+        { q: "当生活压力很大时，你会？", options: [["D","疯狂列计划试图掌控人生"], ["B","找朋友聊天输出情绪"], ["S","一个人默默消失"], ["M","打开短视频，获得短暂失忆"]] },
+        { q: "你觉得自己最像哪种动物？", options: [["K","海豚—看着快乐其实很聪明"], ["J","树懒—能不动就不动"], ["S","狐狸—表面正常，内心全是算盘"], ["G","流浪猫—自由但精神状态随机"]] },
+        { q: "如果人生是一场游戏，你目前的阶段是？", options: [["P","新手村：还在摸索规则"], ["E","主线任务爆炸：天天被追着跑"], ["R","支线太多：每天都在偏航"], ["O","BUG阶段：感觉系统没给我发说明书"]] }
+    ];
+
+    const results = {
+        A: { emoji:"🥗", title: "清爽解压方案", food: "轻食套餐", desc: "清爽低脂轻食，吃着没负担｜鸡胸肉+西兰花+鲜果，低脂高蛋白、补维生素膳食纤维｜250–300大卡" },
+        B: { emoji:"🥟", title: "暖心治愈方案", food: "鲜肉馄饨", desc: "清淡暖胃，鲜而不腻｜猪肉+紫菜，补铁补微量元素，好消化不积食｜280–320大卡" },
+        C: { emoji:"🥣", title: "低卡小甜品", food: "水果酸奶碗", desc: "好吃无负担｜蓝莓/草莓+无糖酸奶，补维生素和益生菌｜150–200大卡" },
+        D: { emoji:"🌽", title: "清淡养胃方案", food: "排骨炖玉米", desc: "暖乎乎超舒服｜排骨+玉米，优质蛋白+碳水，暖胃易消化｜400–450大卡" },
+        E: { emoji:"🍱", title: "充能补给方案", food: "咸肉菜饭", desc: "肉蛋齐全，打工人标配｜鸡腿+双蛋补优质蛋白，青菜解腻补纤维｜480–530大卡" },
+        F: { emoji:"🥘", title: "酸香下饭方案", food: "泰式打抛饭", desc: "拌米饭超香｜肉末补蛋白，豆角促肠道消化｜500–560大卡" },
+        G: { emoji:"🥢", title: "软糯爽口方案", food: "越南小卷粉", desc: "酸辣开胃｜米皮易消化，鲜肉低脂补蛋白｜260–300大卡" },
+        H: { emoji:"🥗", title: "麻酱挂味方案", food: "麻辣拌", desc: "素菜超足量｜杂蔬补多维，豆制品补充植物蛋白｜380–450大卡" },
+        I: { emoji:"🍗", title: "靠谱稳定方案", food: "鸡腿饭", desc: "肉蛋齐全，打工人标配便当｜卤鸡腿+绿色蔬菜，优质蛋白+膳食纤维｜480–530大卡" },
+        J: { emoji:"🍢", title: "街头暖心方案", food: "关东煮", desc: "鲜掉眉毛｜萝卜+海带+虾皮，低卡高纤，补充微量元素｜150–200大卡" },
+        K: { emoji:"🍲", title: "浓郁满足方案", food: "王由里大盘鸡", desc: "馕吸汤巨入味｜鸡腿肉补能，土豆含钾高饱腹｜680–750大卡" },
+        L: { emoji:"🍕", title: "料足饼脆方案", food: "达美乐披萨", desc: "芝士拉丝满分｜芝士补钙，肉类补蛋白，谷物供能｜单块220大卡" },
+        M: { emoji:"🍔", title: "经典解馋方案", food: "麦当劳", desc: "快乐拉满｜肉类快速补能，适合偶尔解馋｜600–680大卡" },
+        N: { emoji:"🍜", title: "酸辣开胃方案", food: "酸辣土豆粉", desc: "浓郁红油，酸辣过瘾超开胃｜土豆粉+酸豆角+辣椒，碳水拉满，解馋首选｜550–600大卡" },
+        O: { emoji:"🐖", title: "胶质满满方案", food: "胖哥俩猪蹄煲", desc: "软烂脱骨超入味｜猪蹄+鸡蛋+鸡爪，胶原蛋白丰富，偶尔解馋超满足｜650–750大卡" },
+        P: { emoji:"🍳", title: "人间烟火方案", food: "临沂鲜炒鸡", desc: "汤汁浓郁，宽面裹满酱汁｜鸡肉+土豆+宽面，碳水蛋白拉满，超满足｜700–800大卡" },
+        Q: { emoji:"🍝", title: "锅气十足方案", food: "炒米粉", desc: "米粉弹牙超香｜米粉+鸡蛋+青菜，碳水为主、解馋饱腹｜450–520大卡" },
+        R: { emoji:"🥗", title: "清爽解腻方案", food: "自选凉拌菜", desc: "自选搭配超自由｜多款鲜蔬+豆制品，高纤维低卡、促消化｜180–250大卡" },
+        S: { emoji:"🥣", title: "鲜滑弹嫩方案", food: "福鼎肉片", desc: "清汤鲜爽无负担｜手工捶打猪瘦肉+紫菜葱花，低脂高蛋白、暖胃易消化｜220–260大卡" }
+    };
+
+    let cur = 0;
+    let userAnswers = {};
+    const colors = ['#fff6f1', '#f1faff', '#f5f1ff', '#f1fff5', '#fffdf1', '#fff1f1', '#f1fdff', '#fbf1ff', '#fff9f1', '#f2f1ff'];
+
+    document.getElementById('startBtn').addEventListener('click', start);
+
+    function resetTest() {
+        cur = 0;
+        userAnswers = {};
+        document.getElementById('page-quiz').style.display = 'none';
+        document.getElementById('page-result').style.display = 'none';
+        document.getElementById('page-start').style.display = 'flex';
+        document.body.style.background = colors[0];
+    }
+
+    function start() {
+        document.getElementById('page-start').style.display = 'none';
+        document.getElementById('page-quiz').style.display = 'flex';
+        render();
+    }
+
+    function render() {
+        const item = questions[cur];
+        document.getElementById('q-idx').innerText = `QUESTION ${String(cur+1).padStart(2, '0')}`;
+        document.getElementById('q-text').innerText = item.q;
+        document.getElementById('progress').style.width = ((cur + 1) / 10 * 100) + '%';
+        document.body.style.background = colors[cur];
+        
+        const box = document.getElementById('options-box');
+        box.innerHTML = '';
+        item.options.forEach(opt => {
+            const div = document.createElement('div');
+            div.className = 'option' + (userAnswers[cur] === opt[0] ? ' selected' : '');
+            div.innerText = opt[1];
+            div.onclick = () => select(opt[0]);
+            box.appendChild(div);
+        });
+        document.getElementById('prev-btn').style.visibility = cur > 0 ? 'visible' : 'hidden';
+    }
+
+    function select(val) {
+        userAnswers[cur] = val;
+        render();
+        setTimeout(()=>{
+            if(cur < 9){
+                cur++;
+                render();
+            }else{
+                showResult();
+            }
+        }, 300);
+    }
+
+    function prev() {
+        if (cur > 0) {
+            cur--;
+            render();
+        }
+    }
+
+    function next(){}
+
+    function showResult() {
+        let counts = {};
+        Object.values(userAnswers).forEach(v => counts[v] = (counts[v] || 0) + 1);
+        let maxKey = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+        let res = results[maxKey];
+
+        document.getElementById('page-quiz').style.display = 'none';
+        document.getElementById('page-result').style.display = 'block';
+        document.body.style.background = '#fff';
+        
+        document.getElementById('res-emoji').innerText = res.emoji;
+        document.getElementById('res-title').innerText = res.title;
+        document.getElementById('res-food-name').innerText = res.food;
+        document.getElementById('res-desc').innerText = res.desc;
+    }
+</script>
+</body>
+</html>
